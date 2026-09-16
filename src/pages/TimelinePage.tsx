@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Search, Route, X, Trash2, Clock, MapPin } from 'lucide-react'
 import { useSceneStore } from '@/store/useSceneStore'
 import {
@@ -11,14 +12,29 @@ import {
 import type { WindowScene } from '@/types'
 
 export default function TimelinePage() {
-  const { routeNames, selectedRoute, currentRouteScenes, selectRoute, loadAll, deleteScene } =
+  const { scenes, routeNames, selectedRoute, currentRouteScenes, selectRoute, loadAll, deleteScene } =
     useSceneStore()
   const [search, setSearch] = useState('')
   const [detailScene, setDetailScene] = useState<WindowScene | null>(null)
+  const location = useLocation()
+  const navigate = useNavigate()
+  const focusSceneId =
+    (location.state as { focusSceneId?: string } | null)?.focusSceneId ?? null
 
   useEffect(() => {
     loadAll()
   }, [loadAll])
+
+  // 从对比台点记录回到时间线：自动选中该记录所在线路并打开详情。
+  useEffect(() => {
+    if (!focusSceneId) return
+    const target = scenes.find((s) => s.id === focusSceneId)
+    if (target) {
+      selectRoute(target.routeName)
+      setDetailScene(target)
+    }
+    navigate(location.pathname, { replace: true, state: null })
+  }, [focusSceneId, scenes, selectRoute, navigate, location.pathname])
 
   const filteredRoutes = routeNames.filter((r) =>
     r.toLowerCase().includes(search.toLowerCase())
